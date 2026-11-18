@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Jeu d'orientation : France Services ou Préfecture ? Apprenez à quel guichet s'adresse chaque démarche administrative.">
+<title>France Services ou Préfecture ? — Le jeu d'orientation</title>
+<style>
+  :root{
+    --bleu:#0053b3; --bleu-fonce:#003a80; --bleu-clair:#e5efff;
+    --rouge:#c2261a; --rouge-clair:#fdeae8;
+    --vert:#18753c; --vert-clair:#e8f7ec;
+    --jaune:#ffe07a;
+    --txt:#161616; --txt2:#3a3a3a;
+    --fond:#f6f6f6; --carte:#ffffff; --bord:#ddd;
+    --radius:14px; --ombre:0 4px 18px rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;scroll-behavior:smooth}
+  body{
+    font-family:"Marianne","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    background:var(--fond);color:var(--txt);line-height:1.5;
+    min-height:100vh;display:flex;flex-direction:column;
+  }
+  h1{font-size:1.6rem;line-height:1.25}
+  h2{font-size:1.25rem}
+  h3{font-size:1.05rem}
+  header{
+    background:linear-gradient(135deg,var(--bleu),var(--bleu-fonce));
+    color:#fff;padding:1rem 1.2rem;text-align:center;
+  }
+  header .tagline{opacity:.9;font-size:.95rem;max-width:44rem;margin:.3rem auto 0}
+  header .tricolore{display:flex;height:6px;max-width:540px;margin:.8rem auto 0;border-radius:3px;overflow:hidden}
+  header .tricolore span{flex:1}
+  main{flex:1;width:100%;max-width:56rem;margin:0 auto;padding:1.2rem}
+  [hidden]{display:none !important}
+
+  .ecran{animation:apparait .25s ease}
+  @keyframes apparait{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .ecran{animation:none}
+    html{scroll-behavior:auto}
+  }
+
+  .bouton{
+    display:inline-block;border:none;border-radius:10px;cursor:pointer;
+    font:inherit;font-weight:700;padding:.85rem 1.4rem;text-align:center;
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .bouton:active{transform:scale(.97)}
+  .bouton-primaire{background:var(--bleu);color:#fff;box-shadow:var(--ombre);font-size:1.1rem}
+  .bouton-primaire:hover{background:var(--bleu-fonce)}
+  .bouton-secondaire{background:#fff;border:2px solid var(--bleu);color:var(--bleu)}
+  .bouton-secondaire:hover{background:var(--bleu-clair)}
+
+  /* --- Écran d'accueil --- */
+  .accueil-cartes{display:grid;gap:1rem;grid-template-columns:1fr;margin-top:1.2rem}
+  @media(min-width:760px){.accueil-cartes{grid-template-columns:1fr 1fr}}
+  .mode{
+    background:var(--carte);border-radius:var(--radius);box-shadow:var(--ombre);
+    padding:1.4rem;display:flex;flex-direction:column;gap:.7rem;text-align:left;
+  }
+  .mode .emoji{font-size:2rem}
+  .mode p{color:var(--txt2);font-size:.95rem;flex:1}
+  .mode ul{list-style:none;font-size:.9rem;color:var(--txt2)}
+  .mode li{padding-left:1.1rem;position:relative;margin:.2rem 0}
+  .mode li::before{content:"✔";position:absolute;left:0;color:var(--vert)}
+  .record{
+    margin-top:1.4rem;text-align:center;font-size:.95rem;color:var(--txt2);
+    background:var(--carte);border-radius:var(--radius);padding:.9rem;box-shadow:var(--ombre);
+  }
+  .record strong{color:var(--bleu);font-size:1.2rem}
+
+  /* --- Écran jeu --- */
+  .barre-haut{
+    display:flex;justify-content:space-between;align-items:center;gap:.6rem;
+    background:var(--carte);border-radius:var(--radius);padding:.7rem 1rem;
+    box-shadow:var(--ombre);margin-bottom:1rem;flex-wrap:wrap;font-weight:700;
+  }
+  .barre-haut span{white-space:nowrap}
+  .progression{height:8px;background:var(--bleu-clair);border-radius:4px;margin-bottom:1rem;overflow:hidden}
+  .progression > div{height:100%;background:var(--bleu);width:0;transition:width .3s ease;border-radius:4px}
+
+  .drapeau-categorie{
+    display:inline-block;background:var(--jaune);color:var(--txt);
+    font-size:.8rem;font-weight:700;padding:.25rem .7rem;border-radius:999px;margin-bottom:.8rem;
+  }
+  .carte-question{
+    background:var(--carte);border-radius:var(--radius);box-shadow:var(--ombre);
+    padding:1.6rem;text-align:center;
+  }
+  .carte-question .devise{font-size:1.15rem;font-weight:400;color:var(--txt2);margin-bottom:.4rem}
+  .carte-question .demarche{
+    font-size:1.45rem;line-height:1.35;color:var(--txt);font-weight:700;margin:.6rem 0 1.4rem;
+  }
+  .carte-question .detail{font-size:.95rem;color:var(--txt2);font-style:italic;margin-bottom:1.2rem}
+
+  .choix{display:grid;gap:.8rem;grid-template-columns:1fr;margin-top:.5rem}
+  @media(min-width:560px){.choix{grid-template-columns:1fr 1fr}}
+  .choix .bouton{padding:1.1rem .8rem;display:flex;flex-direction:column;gap:.2rem;align-items:center;line-height:1.3}
+  .choix .bouton small{font-weight:400;font-size:.82rem;opacity:.85}
+  .choix .btn-fs{background:var(--bleu);color:#fff}
+  .choix .btn-fs:hover{background:var(--bleu-fonce)}
+  .choix .btn-pf{background:var(--rouge);color:#fff}
+  .choix .btn-pf:hover{background:#9e1b12}
+
+  .retour{max-width:12rem;margin-top:1.2rem}
+
+  .feedback{
+    margin-top:1.1rem;border-radius:var(--radius);padding:1rem 1.2rem;text-align:left;
+    animation:apparait .25s ease;
+  }
+  .feedback.correct{background:var(--vert-clair);border:2px solid var(--vert)}
+  .feedback.incorrect{background:var(--rouge-clair);border:2px solid var(--rouge)}
+  .feedback .verdict{font-weight:700;font-size:1.1rem;margin-bottom:.4rem}
+  .feedback.correct .verdict{color:var(--vert)}
+  .feedback.incorrect .verdict{color:var(--rouge)}
+  .feedback .ou-aller{font-size:.95rem}
+  .feedback .lien-utile{margin-top:.6rem;font-size:.9rem}
+  .feedback .lien-utile a{color:var(--bleu);font-weight:700;text-decoration:underline}
+  .action-suite{margin-top:1rem;text-align:center}
+
+  /* --- Écran résultats --- */
+  .resultats{
+    background:var(--carte);border-radius:var(--radius);box-shadow:var(--ombre);
+    padding:2rem;text-align:center;
+  }
+  .score-final{font-size:3rem;font-weight:900;color:var(--bleu);margin:.5rem 0}
+  .message-final{font-size:1.1rem;color:var(--txt2);max-width:34rem;margin:0 auto 1.5rem}
+  .boutons-final{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap}
+  .revue{list-style:none;text-align:left;font-size:.9rem;margin-top:1.5rem}
+  .revue li{
+    background:var(--fond);border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;
+    display:flex;gap:.6rem;align-items:flex-start;
+  }
+  .revue .icone{font-size:1.1rem;flex:0 0 auto}
+
+  /* --- Écran guide --- */
+  .onglets{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap}
+  .onglets .bouton{padding:.55rem 1rem;font-size:.9rem;border-radius:999px;background:#fff;border:2px solid var(--bord);color:var(--txt)}
+  .onglets .actif{background:var(--bleu);border-color:var(--bleu);color:#fff}
+  .panneau{background:var(--carte);border-radius:var(--radius);box-shadow:var(--ombre);padding:1.3rem;margin-bottom:1rem}
+  .panneau h2{color:var(--bleu);margin-bottom:.6rem}
+  .panneau ul{list-style:none}
+  .panneau li{padding-left:1.3rem;position:relative;margin:.45rem 0;font-size:.97rem}
+  .panneau li::before{content:"•";position:absolute;left:.4rem;color:var(--bleu);font-weight:700}
+  .encadre{
+    border-radius:var(--radius);padding:1rem 1.2rem;margin:1rem 0;font-size:.95rem;
+  }
+  .encadre-prefecture{background:var(--rouge-clair);border:2px solid var(--rouge)}
+  .encadre-prefecture h3{color:var(--rouge)}
+  .encadre-fs{background:var(--bleu-clair);border:2px solid var(--bleu)}
+  .encadre-fs h3{color:var(--bleu)}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.6rem;min-width:34rem}
+  .tableau-defilant{overflow-x:auto}
+  th,td{border:1px solid var(--bord);padding:.55rem .7rem;text-align:left;vertical-align:top}
+  th{background:var(--bleu-clair);color:var(--bleu-fonce)}
+  tr:nth-child(even) td{background:#fafafa}
+  footer{
+    text-align:center;font-size:.8rem;color:var(--txt2);padding:1.2rem;background:#eee;
+  }
+  :focus-visible{outline:3px solid #0a76f6;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🇫🇷 France Services ou Préfecture ?</h1>
+  <p class="tagline">Le jeu pour savoir à quel guichet s'adresser : entraînez-vous à différencier les démarches d'accompagnement de l'espace France Services et celles relevant de la Préfecture (Sous-Préfecture) du Jura.</p>
+  <div class="tricolore" aria-hidden="true">
+    <span style="background:#000091"></span><span style="background:#fff"></span><span style="background:#e1000f"></span>
+  </div>
+</header>
+
+<main>
+  <!-- ACCUEIL -->
+  <section id="ecran-accueil" class="ecran" aria-labelledby="titre-accueil">
+    <h2 id="titre-accueil">Choisissez votre mode de jeu</h2>
+    <div class="accueil-cartes">
+      <div class="mode">
+        <span class="emoji" aria-hidden="true">⚡</span>
+        <h3>Défi rapide</h3>
+        <p>10 cartes tirées au hasard. Chaque bonne réponse : 10 points, chaque série de bonnes réponses consécutives accélère votre score.</p>
+        <button class="bouton bouton-primaire" data-mode="rapide">Jouer au défi rapide</button>
+      </div>
+      <div class="mode">
+        <span class="emoji" aria-hidden="true">🏃</span>
+        <h3>Marathon complet</h3>
+        <p>Toutes les démarches du jeu, dans un ordre aléatoire, de la retraite aux armes en passant par les impôts.</p>
+        <button class="bouton bouton-primaire" data-mode="marathon">Jouer au marathon</button>
+      </div>
+      <div class="mode">
+        <span class="emoji" aria-hidden="true">📖</span>
+        <h3>Mode révision</h3>
+        <p>Aucune pression : chaque démarche est expliquée, et vous pouvez relire le guide d'orientation et le bouquet des 12 partenaires.</p>
+        <button class="bouton bouton-secondaire" data-mode="revision">Réviser avec les explications</button>
+      </div>
+      <div class="mode">
+        <span class="emoji" aria-hidden="true">🧭</span>
+        <h3>Guide d'orientation</h3>
+        <p>Le tableau rappelant qui contacter : la Préfecture ou Sous-Préfecture du Jura, ou votre espace France Services de proximité. Inclut le bouquet des 12 partenaires nationaux.</p>
+        <button class="bouton bouton-secondaire" onclick="afficherEcran('ecran-guide')">Consulter le guide</button>
+      </div>
+    </div>
+    <p class="record" id="record" hidden>🏆 Votre meilleur score : <strong id="record-valeur"></strong></p>
+  </section>
+
+  <!-- JEU -->
+  <section id="ecran-jeu" class="ecran" hidden aria-labelledby="Tour en cours">
+    <div class="barre-haut">
+      <span>Carte <span id="numero-carte">1</span>/<span id="total-cartes">10</span></span>
+      <span id="score-affiche">Score : 0</span>
+      <span id="serie-affiche">🔥 Série : 0</span>
+    </div>
+    <div class="progression" aria-hidden="true"><div id="barre-progression"></div></div>
+
+    <div class="carte-question">
+      <p class="drapeau-categorie" id="categorie"></p>
+      <p class="devise">Où dois-je faire cette démarche ?</p>
+      <p class="demarche" id="texte-demarche"></p>
+      <p class="detail" id="detail-demarche"></p>
+
+      <div class="choix" id="choix">
+        <button class="bouton btn-fs" id="btn-fs">
+          🏢 Espace France Services
+          <small>Accompagnement aux démarches en ligne</small>
+        </button>
+        <button class="bouton btn-pf" id="btn-pf">
+          🏛️ Préfecture / Sous-Préfecture du Jura
+          <small>Titres de séjour, ordre public, permis…</small>
+        </button>
+      </div>
+
+      <div class="feedback" id="feedback" role="status" aria-live="polite" hidden></div>
+
+      <div class="action-suite">
+        <button class="bouton bouton-primaire" id="btn-suivant" hidden>Carte suivante →</button>
+      </div>
+    </div>
+    <button class="bouton bouton-secondaire retour" onclick="afficherEcran('ecran-accueil')">← Quitter la partie</button>
+  </section>
+
+  <!-- RÉSULTATS -->
+  <section id="ecran-resultats" class="ecran" hidden aria-labelledby="titre-resultats">
+    <div class="resultats">
+      <h2 id="titre-resultats">Partie terminée !</h2>
+      <p class="score-final" id="score-final">0</p>
+      <p id="pourcentage"></p>
+      <p class="message-final" id="message-final"></p>
+      <div class="boutons-final">
+        <button class="bouton bouton-primaire" onclick="lancerPartie(dernierMode)">Rejouer</button>
+        <button class="bouton bouton-secondaire" onclick="afficherEcran('ecran-accueil')">Menu principal</button>
+      </div>
+      <ul class="revue" id="revue-erreurs"></ul>
+    </div>
+  </section>
+
+  <!-- GUIDE -->
+  <section id="ecran-guide" class="ecran" hidden aria-labelledby="titre-guide">
+    <div class="onglets" role="tablist">
+      <button class="bouton actif" role="tab" aria-selected="true" onclick="afficherOnglet('onglet-orientation', this)">🎯 Orientation</button>
+      <button class="bouton" role="tab" aria-selected="false" onclick="afficherOnglet('onglet-partenaires', this)">🤝 12 partenaires</button>
+    </div>
+
+    <div id="onglet-orientation" role="tabpanel">
+      <div class="panneau">
+        <h2>Pour écarter toute ambiguïté : qui contacter ?</h2>
+        <div class="encadre encadre-prefecture">
+          <h3>🏛️ Vous devez contacter la Préfecture ou la Sous-Préfecture du Jura pour :</h3>
+          <ul>
+            <li>Une demande de <strong>titre de séjour</strong> ou d'<strong>asile</strong>.</li>
+            <li>Une <strong>commission médicale</strong> du permis de conduire ou une <strong>suspension</strong> de permis.</li>
+            <li>La réglementation liée aux <strong>armes</strong> ou aux <strong>manifestations publiques</strong>.</li>
+          </ul>
+          <p style="margin-top:.7rem">➡️ Lien direct : bouton « <strong>Prendre rendez-vous en Préfecture</strong> ».</p>
+        </div>
+        <div class="encadre encadre-fs">
+          <h3>🏢 Vous devez contacter votre espace France Services le plus proche pour :</h3>
+          <ul>
+            <li>Une aide à la <strong>création d'un compte en ligne</strong> (ANTS, CAF, Ameli, Impôts).</li>
+            <li>L'<strong>impression ou la numérisation</strong> de justificatifs administratifs.</li>
+            <li>Un <strong>accompagnement sur dossier complexe</strong> avec un référent partenaire.</li>
+            <li>Une <strong>participation à un atelier</strong> d'initiation au numérique.</li>
+          </ul>
+        </div>
+        <p style="margin-top:.8rem;font-size:.9rem;color:var(--txt2)">Rappel : carte grise, permis, CNI et passeport se traitent en ligne (ANTS, pré-demandes), mais l'espace France Services vous accompagne gratuitement dans ces téléprocédures.</p>
+      </div>
+      <button class="bouton bouton-primaire" onclick="afficherEcran('ecran-accueil')">← Retour au menu</button>
+    </div>
+
+    <div id="onglet-partenaires" role="tabpanel" hidden>
+      <div class="panneau">
+        <h2>Le bouquet national des 12 partenaires obligatoires</h2>
+        <p style="font-size:.95rem;color:var(--txt2)">Les espaces France Services s'appuient sur un bouquet national de 12 partenaires. En cas de dossier complexe ou de blocage d'une démarche, les conseillers mobilisent un <strong>correspondant référent</strong> désigné chez le partenaire concerné.</p>
+        <div class="tableau-defilant">
+          <table>
+            <thead>
+              <tr><th>Catégorie</th><th>Partenaires institutionnels</th><th>Rôle et domaine d'intervention</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Social &amp; Santé</td><td>CAF, CPAM, MSA</td><td>Prestations familiales, maladie, maternité, protection sociale agricole.</td></tr>
+              <tr><td>Retraite &amp; Emploi</td><td>CARSAT, Assurance Retraite, France Travail</td><td>Dossiers de retraite, recherche d'emploi, indemnisation.</td></tr>
+              <tr><td>Titres &amp; Fiscalité</td><td>ANTS, DGFiP</td><td>Cartes grises, permis, pièces d'identité, impôts et taxes.</td></tr>
+              <tr><td>Justice &amp; Services</td><td>Ministère de la Justice, La Poste, Chèque Énergie</td><td>Accès au droit, services postaux, aides au paiement de l'énergie.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <button class="bouton bouton-primaire" onclick="afficherEcran('ecran-accueil')">← Retour au menu</button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Jeu pédagogique d'orientation administrative — Jura. Le contenu est indicatif : en cas de doute, contactez votre espace France Services le plus proche.
+</footer>
+
+<script>
+"use strict";
+
+const PREFECTURE = "pf";
+const FRANCE_SERVICES = "fs";
+
+/* data démarches : c = catégorie, t = type (pf/fs), d = énoncé, e = explication, l = lien utile */
+const DEMARCHES = [
+  // ---------- Préfecture ----------
+  {c:"Étrangers · Séjour", t:PREFECTURE, d:"Déposer une première demande de titre de séjour.",
+   e:"Les demandes de titre de séjour (dépôt, renouvellement) relèvent exclusivement de la Préfecture ou de la Sous-Préfecture du Jura : c'est le guichet compétent pour la régularité du séjour."},
+  {c:"Étrangers · Asile", t:PREFECTURE, d:"Déposer une demande d'asile (enregistrement en guichet unique pour demandeurs d'asile).",
+   e:"L'enregistrement de la demande d'asile est effectué en Préfecture, dans le cadre du guichet unique pour demandeurs d'asile (SPADA/GUDA)."},
+  {c:"Permis · Santé", t:PREFECTURE, d:"Être convoqué à une commission médicale du permis de conduire.",
+   e:"Les convocations aux commissions médicales du permis de conduire sont prononcées par la Préfecture. France Services ne traite pas ce type de dossier médical."},
+  {c:"Permis · Sanction", t:PREFECTURE, d:"Contester ou suivre une suspension de permis de conduire.",
+   e:"Les mesures de suspension ou d'annulation du permis de conduire sont instruites par la Préfecture, autorité administrative compétente."},
+  {c:"Ordre public · Armes", t:PREFECTURE, d:"Déclarer une arme et gérer son identifiant SIA (registre des armes).",
+   e:"Le port, la détention et la déclaration d'armes relèvent de la réglementation contrôlée par la Préfecture. France Services ne peut pas intervenir sur ce sujet."},
+  {c:"Ordre public · Manifestations", t:PREFECTURE, d:"Déclarer une manifestation sur la voie publique.",
+   e:"Toute manifestation sur la voie publique doit être déclarée en Préfecture (ou en mairie selon les cas) : c'est une démarche d'ordre public, hors du périmètre de France Services."},
+  {c:"Étrangers · Séjour", t:PREFECTURE, d:"Renouveler un titre de séjour arrivant à expiration.",
+   e:"Même un simple renouvellement reste une démarche de Préfecture : seul ce guichet traite les questions liées au séjour des étrangers."},
+
+  // ---------- France Services : Retraite, Emploi, Protection sociale ----------
+  {c:"Retraite", t:FRANCE_SERVICES, d:"Faire aider pour la constitution du dossier de retraite.",
+   e:"L'espace France Services accompagne gratuitement l'usager dans la constitution de son dossier de retraite auprès des organismes (CARSAT, MSA, Assurance Retraite).", l:"info-retraite.fr"},
+  {c:"Retraite", t:FRANCE_SERVICES, d:"Consulter son relevé de carrière en ligne.",
+   e:"La consultation du relevé de carrière se fait sur le site info-retraite.fr ; l'espace France Services aide à créer son compte et à naviguer sur le site.", l:"info-retraite.fr"},
+  {c:"Retraite", t:FRANCE_SERVICES, d:"Déposer une demande de pension de réversion.",
+   e:"La demande de pension de réversion se fait auprès des caisses de retraite (CARSAT, MSA, Assurance Retraite). France Services accompagne l'usager dans cette démarche en ligne.", l:"info-retraite.fr"},
+  {c:"Emploi & Insertion", t:FRANCE_SERVICES, d:"Actualiser sa situation mensuelle auprès de France Travail.",
+   e:"L'inscription et l'actualisation France Travail se font en ligne ; l'espace France Services propose un accompagnement, notamment pour les usagers éloignés du numérique.", l:"francetravail.fr"},
+  {c:"Emploi & Insertion", t:FRANCE_SERVICES, d:"Faire rédiger et transmettre son CV en ligne.",
+   e:"L'aide à la rédaction et à la transmission de CV en ligne est un accompagnement typique du conseiller France Services, en lien avec France Travail.", l:"francetravail.fr"},
+  {c:"Santé & Famille", t:FRANCE_SERVICES, d:"Créer son compte Ameli ou MSA.",
+   e:"La création et l'utilisation du compte Ameli (assurance maladie) ou MSA (régime agricole) font partie des accompagnements de droit commun de l'espace France Services.", l:"ameli.fr"},
+  {c:"Santé & Famille", t:FRANCE_SERVICES, d:"Déposer une demande d'allocations familiales auprès de la CAF.",
+   e:"Les demandes d'allocations familiales se font sur le site de la CAF ; l'espace France Services aide à créer le compte et à remplir le formulaire en ligne.", l:"caf.fr"},
+  {c:"Santé & Famille", t:FRANCE_SERVICES, d:"Demander la prime d'activité ou le RSA.",
+   e:"Les demandes de prime d'activité et de RSA se déposent en ligne (CAF ou MSA) ; l'espace France Services accompagne l'usager dans sa téléprocédure.", l:"caf.fr"},
+
+  // ---------- France Services : Véhicules, permis, identité ----------
+  {c:"Véhicules", t:FRANCE_SERVICES, d:"Faire une démarche d'immatriculation (carte grise) sur le site de l'ANTS.",
+   e:"Depuis la suppression des guichets physiques pour la carte grise, toutes les démarches passent par l'ANTS en ligne : l'espace France Services accompagne gratuitement cette téléprocédure.", l:"ants.gouv.fr"},
+  {c:"Véhicules", t:FRANCE_SERVICES, d:"Déclarer un changement d'adresse sur la carte grise.",
+   e:"Le changement d'adresse sur le certificat d'immatriculation se fait en ligne via l'ANTS ; l'espace France Services aide à réaliser cette démarche.", l:"ants.gouv.fr"},
+  {c:"Véhicules", t:FRANCE_SERVICES, d:"Faire une pré-demande d'inscription au permis de conduire (ANTS).",
+   e:"La pré-demande d'inscription au permis de conduire est une téléprocédure ANTS : l'espace France Services accompagne l'usager pour la compléter en ligne.", l:"ants.gouv.fr"},
+  {c:"Identité & Voyage", t:FRANCE_SERVICES, d:"Remplir sa pré-demande en ligne pour la carte nationale d'identité.",
+   e:"La pré-demande CNI se fait en ligne (ANTS) ; l'espace France Services accompagne la saisie. Le rendez-vous biométrique se prenant ensuite en mairie, France Services peut aussi aider à le trouver.", l:"ants.gouv.fr"},
+  {c:"Identité & Voyage", t:FRANCE_SERVICES, d:"Remplir sa pré-demande en ligne pour un passeport.",
+   e:"La pré-demande de passeport se remplit en ligne sur le site de l'ANTS : l'espace France Services accompagne gratuitement l'usager dans cette démarche.", l:"ants.gouv.fr"},
+
+  // ---------- France Services : Impôts, logement, justice ----------
+  {c:"Fiscalité", t:FRANCE_SERVICES, d:"Réaliser sa déclaration de revenus en ligne.",
+   e:"La déclaration de revenus en ligne se fait sur impots.gouv.fr ; l'espace France Services accompagne les usagers qui n'ont pas l'habitude du numérique, avec l'appui de la DGFiP.", l:"impots.gouv.fr"},
+  {c:"Fiscalité", t:FRANCE_SERVICES, d:"Payer ses impôts en ligne.",
+   e:"Le paiement des impôts en ligne (DGFiP) est une démarche que le conseiller France Services aide à réaliser depuis son espace.", l:"impots.gouv.fr"},
+  {c:"Fiscalité", t:FRANCE_SERVICES, d:"Demander un renseignement fiscal courant.",
+   e:"Les renseignements fiscaux courants relèvent de la DGFiP, partenaire du bouquet national : l'espace France Services oriente et accompagne l'usager.", l:"impots.gouv.fr"},
+  {c:"Logement & Énergie", t:FRANCE_SERVICES, d:"Demander des aides au logement (APL, ALS).",
+   e:"Les demandes d'aides au logement se font auprès de la CAF (ou MSA), partenaire du bouquet national : l'espace France Services accompagne le dépôt du dossier en ligne.", l:"caf.fr"},
+  {c:"Logement & Énergie", t:FRANCE_SERVICES, d:"Utiliser son chèque énergie.",
+   e:"Le chèque énergie est géré avec l'Agence nationale des services à la personne (partenaire du bouquet) : l'espace France Services aide à son utilisation et aux démarches associées.", l:"chequeenergie.gouv.fr"},
+  {c:"Logement & Énergie", t:FRANCE_SERVICES, d:"Trouver les aides à la rénovation énergétique de son logement.",
+   e:"L'orientation vers les dispositifs d'aides à la rénovation énergétique fait partie du rôle d'accompagnement de l'espace France Services, en lien avec les partenaires compétents.", l:"france-renov.gouv.fr"},
+  {c:"Justice", t:FRANCE_SERVICES, d:"S'informer sur l'accès au droit.",
+   e:"L'information sur l'accès au droit et l'orientation vers les points-justice relèvent du Ministère de la Justice, partenaire du bouquet : l'espace France Services oriente l'usager.", l:""},
+
+  {c:"Justice", t:FRANCE_SERVICES, d:"Faire constituer un dossier d'aide juridictionnelle.",
+   e:"L'aide à la constitution des dossiers d'aide juridictionnelle est une mission d'accompagnement de l'espace France Services, en lien avec le partenaire Justice.", l:""},
+
+  // ---------- France Services : missions spécifiques du portail ----------
+  {c:"Accompagnement numérique", t:FRANCE_SERVICES, d:"Se faire aider à créer un compte sur l'ANTS, la CAF, Ameli ou Impôts.",
+   e:"C'est l'une des missions cœur de France Services : l'aide à la création de comptes en ligne (ANTS, CAF, Ameli, Impôts).", l:""},
+  {c:"Accompagnement numérique", t:FRANCE_SERVICES, d:"Faire imprimer ou numériser des justificatifs administratifs.",
+   e:"L'impression et la numérisation de justificatifs administratifs sont des services mis gratuitement à disposition dans l'espace France Services.", l:""},
+  {c:"Accompagnement complexe", t:FRANCE_SERVICES, d:"Être accompagné sur un dossier complexe grâce au référent partenaire.",
+   e:"En cas de blocage ou de dossier complexe, le conseiller France Services mobilise le correspondant référent désigné chez le partenaire concerné (les 12 partenaires du bouquet national).", l:""},
+  {c:"Atelier", t:FRANCE_SERVICES, d:"Participer à un atelier d'initiation au numérique.",
+   e:"Les ateliers d'initiation au numérique sont animés dans les espaces France Services pour développer l'autonomie des usagers.", l:""},
+];
+
+const MESSAGES = [
+  {min:100, msg:"Parfait ! Vous savez exactement à quel guichet vous adresser. 🎩"},
+  {min:80,  msg:"Très bien ! Encore quelques révisions et vous serez un champion de l'orientation administrative."},
+  {min:60,  msg:"Bien joué ! Passez en mode révision pour revoir les cas les plus ambigus."},
+  {min:0,   msg:"Le guide d'orientation est votre ami : jetez-y un œil puis retentez le marathon !"},
+];
+
+const ecranJeux = document.getElementById("ecran-jeu");
+const elCategorie = document.getElementById("categorie");
+const elDemarche = document.getElementById("texte-demarche");
+const elDetail = document.getElementById("detail-demarche");
+const elFeedback = document.getElementById("feedback");
+const elScore = document.getElementById("score-affiche");
+const elSerie = document.getElementById("serie-affiche");
+const elNum = document.getElementById("numero-carte");
+const elTotal = document.getElementById("total-cartes");
+const elBarre = document.getElementById("barre-progression");
+const elSuivant = document.getElementById("btn-suivant");
+const elChoix = document.getElementById("choix");
+
+let dernierMode = "rapide";
+let paquet = [], index = 0, score = 0, serie = 0, verrouille = false, erreurs = [];
+
+function melanger(liste){
+  const copie = liste.slice();
+  for(let i = copie.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
+}
+
+function afficherEcran(id){
+  ["ecran-accueil","ecran-jeu","ecran-resultats","ecran-guide"].forEach(e=>{
+    document.getElementById(e).hidden = (e !== id);
+  });
+  window.scrollTo({top:0});
+  if(id === "ecran-accueil") majRecord();
+}
+
+function afficherOnglet(id, bouton){
+  document.getElementById("onglet-orientation").hidden = (id !== "onglet-orientation");
+  document.getElementById("onglet-partenaires").hidden = (id !== "onglet-partenaires");
+  document.querySelectorAll('[role="tab"]').forEach(t=>{
+    t.classList.toggle("actif", t === bouton);
+    t.setAttribute("aria-selected", t === bouton ? "true" : "false");
+  });
+}
+
+function lancerPartie(mode){
+  dernierMode = mode;
+  let selection;
+  if(mode === "rapide"){
+    selection = melanger(DEMARCHES).slice(0, 10);
+  } else if(mode === "marathon"){
+    selection = melanger(DEMARCHES);
+  } else {
+    selection = melanger(DEMARCHES.filter(x => x.t === PREFECTURE).slice(0,4)
+      .concat(melanger(DEMARCHES.filter(x => x.t === FRANCE_SERVICES)).slice(0,6)));
+    selection = melanger(selection);
+  }
+  paquet = selection; index = 0; score = 0; serie = 0; erreurs = [];
+  majAffichage();
+  afficherEcran("ecran-jeu");
+  montrerCarte();
+}
+
+function majAffichage(){
+  elScore.textContent = "Score : " + score;
+  elSerie.textContent = "🔥 Série : " + serie;
+  elNum.textContent = Math.min(index + 1, paquet.length);
+  elTotal.textContent = paquet.length;
+  elBarre.style.width = Math.round((index / paquet.length) * 100) + "%";
+}
+
+function montrerCarte(){
+  const c = paquet[index];
+  elCategorie.textContent = c.c;
+  elDemarche.textContent = c.d;
+  elDetail.textContent = "";
+  elFeedback.hidden = true;
+  elSuivant.hidden = true;
+  elChoix.hidden = false;
+  verrouille = false;
+  majAffichage();
+}
+
+function repondre(reponse){
+  if(verrouille || index >= paquet.length) return;
+  verrouille = true;
+  const c = paquet[index];
+  const correct = (reponse === c.t);
+  if(correct){
+    serie++;
+    score += 10 + Math.min(serie - 1, 5) * 2;
+  } else {
+    serie = 0;
+    erreurs.push(c);
+  }
+  elChoix.hidden = true;
+  elDetail.textContent = "";
+  elFeedback.hidden = false;
+  elFeedback.className = "feedback " + (correct ? "correct" : "incorrect");
+  const aide = c.l ? '<p class="lien-utile">🔗 Pour aller plus loin : <a href="https://' + c.l + '" target="_blank" rel="noopener">' + c.l + '</a></p>' : "";
+  elFeedback.innerHTML =
+    (correct ? '<p class="verdict">✅ Bonne réponse ! +10 points</p>'
+             : '<p class="verdict">❌ Ce n\'était pas le bon guichet.</p>') +
+    '<p class="ou-aller"><strong>' + (c.t === PREFECTURE ? "🏛️ Préfecture / Sous-Préfecture du Jura" : "🏢 Espace France Services") + '</strong> — ' + c.e + '</p>' +
+    aide;
+  elSuivant.hidden = false;
+  elSuivant.textContent = (index + 1 < paquet.length) ? "Carte suivante →" : "Voir mes résultats →";
+  elSuivant.focus();
+}
+
+function carteSuivante(){
+  index++;
+  if(index >= paquet.length){ terminerPartie(); return; }
+  montrerCarte();
+}
+
+function terminerPartie(){
+  elBarre.style.width = "100%";
+  const max = paquet.length * 20;
+  const pct = Math.round((score / max) * 100);
+  document.getElementById("score-final").textContent = score + " pts";
+  document.getElementById("pourcentage").textContent = "Vous avez réussi " + (paquet.length - erreurs.length) + " carte(s) sur " + paquet.length + ".";
+  const msg = MESSAGES.find(m => pct >= m.min) || MESSAGES[MESSAGES.length - 1];
+  document.getElementById("message-final").textContent = msg.msg;
+  const revue = document.getElementById("revue-erreurs");
+  revue.innerHTML = "";
+  if(erreurs.length){
+    const titre = document.createElement("h3");
+    titre.textContent = "À revoir : les démarches où vous vous êtes trompé";
+    revue.appendChild(titre);
+    erreurs.forEach(c=>{
+      const li = document.createElement("li");
+      const ic = c.t === PREFECTURE ? "🏛️" : "🏢";
+      li.innerHTML = '<span class="icone">' + ic + '</span><span><strong>' + c.d + '</strong><br>' + c.e + '</span>';
+      revue.appendChild(li);
+    });
+  }
+  enregistrerRecord(score);
+  afficherEcran("ecran-resultats");
+}
+
+/* Records locaux (localStorage) */
+function enregistrerRecord(s){
+  try{
+    const meilleur = Math.max(s, parseInt(localStorage.getItem("fsJeuRecord") || "0", 10));
+    localStorage.setItem("fsJeuRecord", String(meilleur));
+  }catch(e){}
+}
+function majRecord(){
+  let r = 0;
+  try{ r = parseInt(localStorage.getItem("fsJeuRecord") || "0", 10); }catch(e){}
+  const bloc = document.getElementById("record");
+  if(r > 0){
+    document.getElementById("record-valeur").textContent = r + " points";
+    bloc.hidden = false;
+  }
+}
+
+document.querySelectorAll("[data-mode]").forEach(b=>{
+  b.addEventListener("click", ()=> lancerPartie(b.dataset.mode));
+});
+document.getElementById("btn-fs").addEventListener("click", ()=> repondre(FRANCE_SERVICES));
+document.getElementById("btn-pf").addEventListener("click", ()=> repondre(PREFECTURE));
+document.getElementById("btn-suivant").addEventListener("click", carteSuivante);
+document.addEventListener("keydown", e=>{
+  if(ecranJeux.hidden || verrouille) return;
+  if(e.key === "ArrowLeft") repondre(FRANCE_SERVICES);
+  if(e.key === "ArrowRight") repondre(PREFECTURE);
+});
+
+majRecord();
+</script>
+</body>
+</html>
